@@ -5,11 +5,11 @@ deploy: off
 
 environment:
   CYG_BASH: C:\cygwin\bin\bash
-  CYGWIN: NONTSEC
+  CYGWIN: nontsec
 
 init:
   - 'C:\cygwin\setup-x86.exe -q -P unzip -P chmod'
-  - '%CYG_BASH% -lc "mkdir $HOMEPATH/.dnx; chmod 755 $HOMEPATH/.dnx; mkdir $HOMEPATH/.dnx/alias; cat /etc/fstab; echo "none /cygdrive cygdrive binary,noacl,posix=0,user 0 0\n" > /etc/fstab; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
+  - '%CYG_BASH% -lc "mkdir $HOMEPATH/.dnx; chmod 755 $HOMEPATH/.dnx; mkdir $HOMEPATH/.dnx/alias; cat /etc/fstab; echo "none /cygdrive cygdrive noacl,binary,posix=0,user 0 0\n" > /etc/fstab; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
 install:
 
 build_script:
