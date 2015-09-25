@@ -8,7 +8,7 @@ environment:
   CYGWIN: NONTSEC
 
 init:
-  - '%CYG_BASH% -lc "where chmod; cd /etc; echo "none /cygdrive cygdrive binary,noacl,posix=0,user 0 0" > fstab; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
+  - '%CYG_BASH% -lc "where chmod; echo $path; cd /etc; echo "none /cygdrive cygdrive binary,noacl,posix=0,user 0 0" > fstab; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
 install:
 
   - 'C:\cygwin\setup-x86.exe -q -P unzip'
