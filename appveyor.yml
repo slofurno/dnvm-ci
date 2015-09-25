@@ -10,7 +10,7 @@ environment:
 init:
   - 'C:\cygwin\setup-x86.exe -q -P unzip -P chmod'
   - '%CYG_BASH% -lc "where mount; cat /etc/fstab; uname -a; echo "none /cygdrive cygdrive binary,noacl,posix=0,user 0 0" > /etc/fstab "'
-  - '%CYG_BASH% -lc "mount; mkdir $HOMEPATH/.dnx; mkdir $HOMEPATH/.dnx/alias; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
+  - '%CYG_BASH% -lc "cat /etc/fstab; mount; mkdir $HOMEPATH/.dnx; mkdir $HOMEPATH/.dnx/alias; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
 install:
 
 build_script:
