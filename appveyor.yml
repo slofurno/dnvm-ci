@@ -9,8 +9,8 @@ environment:
 
 init:
   - 'C:\cygwin\setup-x86.exe -q -P unzip -P chmod'
-  - '%CYG_BASH% -lc "echo "none /cygdrive cygdrive binary,noacl,posix=0,user 0 0" > /etc/fstab"'
-  - '%CYG_BASH% -lc "mount; mkdir $HOMEPATH/.dnx; chmod -r 755 $HOMEPATH/.dnx; mkdir $HOMEPATH/.dnx/alias; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
+  - '%CYG_BASH% -lc "echo "none /cygdrive cygdrive binary,noacl,posix=0,user 0 0" > /etc/fstab; mount -c /cygdrive -o binary,noacl,posix=0;"'
+  - '%CYG_BASH% -lc "mount; mkdir $HOMEPATH/.dnx; mkdir $HOMEPATH/.dnx/alias; mkpasswd -l -d > /etc/passwd; mkgroup -l -d > /etc/group"'
 install:
 
 build_script:
