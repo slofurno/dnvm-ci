@@ -30,17 +30,6 @@ if [ "$NO_COLOR" != "1" ]; then
     Whi='\e[0;37m';     BWhi='\e[1;37m';    UWhi='\e[4;37m';    IWhi='\e[0;97m';    BIWhi='\e[1;97m';   On_Whi='\e[47m';    On_IWhi='\e[0;107m';
 fi
 
-__dnvm_current_os()
-{
-    local uname=$(uname)
-    if [[ $uname == *"CYGWIN"* ]] || [[ $uname == *"MINGW"* ]]; then
-		echo "win"
-    elif [[ $uname == "Darwin" ]]; then
-        echo "darwin"
-    else
-        echo "linux"
-    fi
-}
 
 [[ "$_DNVM_BUILDNUMBER" = {{* ]] && _DNVM_BUILDNUMBER="HEAD"
 
@@ -79,6 +68,17 @@ _DNVM_DNVM_DIR="$DNX_USER_HOME/dnvm"
 
 DNX_ACTIVE_FEED=""
 
+__dnvm_current_os()
+{
+    local uname=$(uname)
+    if [[ $uname == *"CYGWIN"* ]] || [[ $uname == *"MINGW"* ]]; then
+        echo "win"
+    elif [[ $uname == "Darwin" ]]; then
+        echo "darwin"
+    else
+        echo "linux"
+    fi
+}
 __dnvm_os_runtime_defaults()
 {
     local os=$1
@@ -225,10 +225,11 @@ __dnvm_update_self() {
 
 __dnvm_promptSudo() {
     local acceptSudo="$1"
+    local sudoMsg="$2"
 
     local answer=
     if [ "$acceptSudo" == "0" ]; then
-        echo "In order to install dnx globally, dnvm will have to temporarily run as root."
+        echo $2
         read -p "You may be prompted for your password via 'sudo' during this process. Is this Ok? (y/N) " answer
     else
         answer="y"
@@ -269,7 +270,7 @@ __dnvm_download() {
     local useSudo=
     mkdir -p "$runtimeFolder" > /dev/null 2>&1
     if [ ! -d $runtimeFolder ]; then
-        if ! __dnvm_promptSudo $acceptSudo ; then
+        if ! __dnvm_promptSudo $acceptSudo "In order to install dnx globally, dnvm will have to temporarily run as root." ; then
             useSudo=sudo
             sudo mkdir -p "$runtimeFolder" > /dev/null 2>&1 || return 1
         else
@@ -369,7 +370,6 @@ __dnvm_requested_version_or_alias() {
 # This will be more relevant if we support global installs
 __dnvm_locate_runtime_bin_from_full_name() {
     local runtimeFullName=$1
-	
     for v in `echo $DNX_HOME | tr ":" "\n"`; do
         if [ -e "$v/runtimes/$runtimeFullName/bin" ]; then
             echo "$v/runtimes/$runtimeFullName/bin" && return
@@ -444,6 +444,13 @@ __dnvm_help() {
     echo "  -y                Assume Yes to all queries and do not prompt"
     echo ""
     echo "  adds $_DNVM_RUNTIME_SHORT_NAME bin to path of current command line"
+    echo ""
+   printf "%b\n" "${Yel}$_DNVM_COMMAND_NAME uninstall <semver> [-r|-runtime <runtime>] [-a|-arch <architecture>] [-OS <OS>]${RCol}"
+    echo "  <semver>          the version to uninstall"
+    echo "  -r|-runtime       runtime to use (mono, coreclr)"
+    echo "  -a|-arch          architecture to use (x64)"
+    echo "  -OS               the operating system that the runtime targets (default:$(__dnvm_current_os)"
+    echo "  -y                Assume Yes to all queries and do not prompt"
     echo ""
    printf "%b\n" "${Yel}$_DNVM_COMMAND_NAME use <semver>|<alias>|<package>|none [-p|-persistent] [-r|-runtime <runtime>] [-a|-arch <architecture>] ${RCol}"
     echo "  <semver>|<alias>|<package>  add $_DNVM_RUNTIME_SHORT_NAME bin to path of current command line   "
@@ -633,7 +640,6 @@ dnvm()
                 local runtimeFolder="$runtimeDir/$runtimeFullName"
 
                 local exist=0
-				
                 for folder in `echo $DNX_HOME | tr ":" "\n"`; do
                     if [ -e "$folder/runtimes/$runtimeFullName" ]; then
                         echo "$runtimeFullName already installed in $folder"
@@ -667,7 +673,7 @@ dnvm()
                   local useSudo=
                   mkdir -p "$runtimeFolder" > /dev/null 2>&1
                   if [ ! -d $runtimeFolder ]; then
-                     if ! __dnvm_promptSudo $acceptSudo ; then
+                     if ! __dnvm_promptSudo $acceptSudo "In order to install dnx globally, dnvm will have to temporarily run as root." ; then
                          useSudo=sudo
                          sudo mkdir -p "$runtimeFolder" > /dev/null 2>&1 || return 1
                      else
@@ -680,6 +686,79 @@ dnvm()
                 fi
                 $_DNVM_COMMAND_NAME use "$runtimeVersion" "$persistent" -r "$runtimeClr"
                 [[ -n $alias ]] && $_DNVM_COMMAND_NAME alias "$alias" "$runtimeVersion"
+            fi
+        ;;
+
+        "uninstall" )
+            [[ $# -lt 2 ]] && __dnvm_help && return
+            shift
+
+            local versionOrAlias=
+            local runtime=
+            local architecture=
+            local os=
+            local acceptSudo=0
+            while [ $# -ne 0 ]
+            do
+                if [[ $1 == "-r" || $1 == "-runtime" ]]; then
+                    local runtime=$2
+                    shift
+                elif [[ $1 == "-a" || $1 == "-arch" ]]; then
+                    local architecture=$2
+                    shift
+                elif [[ $1 == "-OS" ]]; then
+                    local os=$2
+                    shift
+                elif [[ $1 == "-y" ]]; then
+                    local acceptSudo=1
+                elif [[ -n $1 ]]; then
+                    local versionOrAlias=$1
+                fi
+
+                shift
+            done
+
+            if [[ -z $os ]]; then
+                os=$(__dnvm_current_os)
+            elif [[ $os == "osx" ]]; then
+                os="darwin"
+            fi
+
+            if [[ -z $runtime ]]; then
+                runtime=$(__dnvm_os_runtime_defaults "$os")
+            fi
+
+            if [[ -z $architecture ]]; then
+                architecture=$(__dnvm_runtime_bitness_defaults "$runtime")
+            fi
+
+            # dnx-coreclr-linux-x64.1.0.0-beta7-12290
+            local runtimeFullName=$(__dnvm_requested_version_or_alias "$versionOrAlias" "$runtime" "$architecture" "$os")
+
+            for folder in `echo $DNX_HOME | tr ":" "\n"`; do
+                if [ -e "$folder/runtimes/$runtimeFullName" ]; then
+                    local runtimeFolder="$folder/runtimes/$runtimeFullName"
+                fi
+            done
+
+            if [[ -e $runtimeFolder ]]; then
+                if [[ $runtimeFolder == *"$DNX_GLOBAL_HOME"* ]] ; then
+                    if ! __dnvm_promptSudo $acceptSudo "In order to uninstall a global dnx, dnvm will have to temporarily run as root." ; then
+                        local useSudo=sudo
+                    fi
+                fi
+                $useSudo rm -r $runtimeFolder
+                echo "Removed $runtimeFolder"
+            else
+                echo "$runtimeFolder is not installed"
+            fi
+
+            if [ -d "$_DNVM_ALIAS_DIR" ]; then
+                for __dnvm_file in $(find "$_DNVM_ALIAS_DIR" -name *.alias); do
+                    if [ $(cat $__dnvm_file) == "$runtimeFullName" ]; then
+                        rm $__dnvm_file
+                    fi
+                done
             fi
         ;;
 
@@ -855,7 +934,6 @@ dnvm()
             [[ ! -d $_DNVM_USER_PACKAGES ]] && echo "$_DNVM_RUNTIME_FRIENDLY_NAME is not installed." && return 1
 
             local searchGlob="$_DNVM_RUNTIME_PACKAGE_NAME-*"
-            
             local runtimes=""
             for location in `echo $DNX_HOME | tr ":" "\n"`; do
                 location+="/runtimes"
@@ -878,7 +956,6 @@ dnvm()
 
             # Z shell array-index starts at one.
             local i=1
-            local format="%-20s %s\n"
             if [ -d "$_DNVM_ALIAS_DIR" ]; then
                 for __dnvm_file in $(find "$_DNVM_ALIAS_DIR" -name *.alias); do
                     if [ ! -d "$_DNVM_USER_PACKAGES/$(cat $__dnvm_file)" ] && [ ! -d "$_DNVM_GLOBAL_PACKAGES/$(cat $__dnvm_file)" ]; then
