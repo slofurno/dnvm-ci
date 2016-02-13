@@ -13,5 +13,5 @@ init:
 install:
 
 build_script:
-  - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; source dnvm.sh; dnvm upgrade; dnvm install -r coreclr -arch x64 latest -OS win -u -p; dnvm list; dnu.cmd"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; source dnvm.sh; dnvm upgrade; dnvm install -r coreclr -arch x64 latest -OS win -u -p; dnvm list; dnu.cmd --help"'
  
